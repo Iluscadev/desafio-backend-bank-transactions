@@ -1,6 +1,3 @@
-from asyncore import read
-from dataclasses import field
-
 from rest_framework.serializers import ModelSerializer
 
 from users.models import User

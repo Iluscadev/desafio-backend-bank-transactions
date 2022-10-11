@@ -13,9 +13,3 @@ class Transaction(models.Model):
     time = models.TimeField()
     shop_owner = models.CharField(max_length=14)
     shop = models.CharField(max_length=19)
-
-    user = models.ForeignKey(
-        "users.User",
-        on_delete=models.CASCADE,
-        related_name="transactions"
-    )

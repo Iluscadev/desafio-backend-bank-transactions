@@ -10,4 +10,4 @@ class User(AbstractUser):
     last_name = models.CharField(max_length=50)
     email = models.EmailField()
 
-    REQUIRED_FIELDS = ["email", "first_name", "last_name", "password"]
+    REQUIRED_FIELDS = ["email", "password"]

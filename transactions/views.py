@@ -1,11 +1,9 @@
-import ipdb
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import Request, Response, status
 
 from transactions.models import Transaction
-from transactions.permissions import IsOwner
 from transactions.serializers import TransactionSerializer
 
 
@@ -15,10 +13,29 @@ class TransactionView(ListCreateAPIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        user_id = self.request.user.id
-        return self.queryset.filter(user_id=user_id)
-        
+    def list(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+
+
+        positive_sum = sum(float(item["value"]) for item in serializer.data if not item["type"] == "Boleto" or not item["type"] == "Financiamento" or not item["type"] == "Aluguel")
+
+        negative_sum = sum(float(item["value"]) for item in serializer.data if item["type"] == "Boleto" or item["type"] == "Financiamento" or item["type"] == "Aluguel")
+
+        balance = {
+            "cash_in": positive_sum,
+            "cash_out": negative_sum,
+            "final_balance": positive_sum - negative_sum
+        }
+
+        return Response({"balance": balance, "transactions": serializer.data})
+
     def create(self, request: Request):
         file = request.FILES["file"]
         content = file.read().decode("utf-8").split("\n")
@@ -28,7 +45,7 @@ class TransactionView(ListCreateAPIView):
             new_dict = self.create_formated_dict(transaction)
             serializer = self.get_serializer(data=new_dict)
             serializer.is_valid(raise_exception=True)
-            serializer.save(user=request.user)
+            serializer.save()
             response_list.append(serializer.data)
         
         return Response(response_list, status=status.HTTP_201_CREATED)
@@ -81,9 +98,10 @@ class TransactionView(ListCreateAPIView):
                 return "Aluguel"
 
 
-class TransactionRetrieve(RetrieveAPIView):
+class TransactionRetrieveView(RetrieveAPIView):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = "transaction_id"
 
