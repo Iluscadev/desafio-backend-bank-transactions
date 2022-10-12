@@ -9,10 +9,6 @@ from transactions.models import Transaction
 
 
 class TransactionModelTest(TestCase):
-    @classmethod
-    def setUpTestData(cls) -> None:
-        pass
-
     def test_transaction_creation(self):
         transaction = Transaction.objects.create(
             type= "Financiamento",
